@@ -1,0 +1,35 @@
+databaseChangeLog:
+  - includeAll:
+      path: db/changelog/changesets/
+      relativeToChangelogFile: false # Le chemin est relatif au classpath
+      # Ou, si vous préférez lister les fichiers explicitement :
+      # path: db/changelog/changesets/001-create-users-table.yaml
+      # path: db/changelog/changesets/002-another-change.yaml
+      # etc.
+      # Pour commencer, includeAll est plus simple si les fichiers sont nommés séquentiellement.
+      # Assurez-vous que les noms de fichiers dans le dossier 'changesets' sont ordonnés (par ex., 001-..., 002-...).
+      # Liquibase les exécutera dans l'ordre alphabétique.
+      #
+      # Si vous utilisez des fichiers individuels, la structure serait:
+      # - include:
+      #     file: db/changelog/changesets/001-create-users-table.yaml
+      # - include:
+      #     file: db/changelog/changesets/002-add-new-column-to-users.yaml
+      #
+      # Pour ce projet, commençons avec includeAll pour le dossier changesets.
+      # Les fichiers dans 'changesets' doivent être nommés pour s'assurer de l'ordre d'exécution,
+      # par exemple, 001-nom.yaml, 002-nom.yaml.
+      #
+      # Alternative avec Spring Boot : Spring Boot configure par défaut le chemin du master changelog à
+      # classpath:/db/changelog/db.changelog-master.xml (ou .yaml, .json, .sql).
+      # La propriété spring.liquibase.change-log=classpath:/db/changelog/db.changelog-master.yaml
+      # est donc implicite si le fichier est à cet emplacement.
+      #
+      # L'option 'includeAll' est pratique mais peut être moins contrôlable pour des scénarios complexes.
+      # Pour ce cas, nous allons lister explicitement le premier fichier pour plus de clarté.
+
+  - include:
+      file: db/changelog/changesets/001-create-users-table.yaml
+      # Si vous ajoutez d'autres changesets, ajoutez-les ici:
+      # file: db/changelog/changesets/002-next-changes.yaml
+      # etc.

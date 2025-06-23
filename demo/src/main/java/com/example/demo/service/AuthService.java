@@ -5,7 +5,9 @@ import com.example.demo.entity.User;
 import com.example.demo.repository.UserRepository;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import jakarta.annotation.PostConstruct; // Import pour @PostConstruct
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value; // Import pour @Value
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -27,12 +29,18 @@ public class AuthService {
     private final UserRepository userRepository;
     private final ConcurrentHashMap<String, TempUser> pendingUsers = new ConcurrentHashMap<>();
 
-    // ✅ Clé sécurisée : au moins 32 caractères
-    private static final String JWT_SECRET_STRING = "myVerySecureSecretKeyThatIsLongEnough!";
-    private static final SecretKey JWT_SECRET = new SecretKeySpec(
-            JWT_SECRET_STRING.getBytes(StandardCharsets.UTF_8),
-            SignatureAlgorithm.HS256.getJcaName()
-    );
+    @Value("${jwt.secret.key}") // Injection de la clé depuis application.properties
+    private String jwtSecretString;
+
+    private SecretKey jwtSecretKey; // La SecretKey sera initialisée dans init()
+
+    @PostConstruct // Exécuté après l'injection des dépendances
+    public void init() {
+        this.jwtSecretKey = new SecretKeySpec(
+                jwtSecretString.getBytes(StandardCharsets.UTF_8),
+                SignatureAlgorithm.HS256.getJcaName()
+        );
+    }
 
     public String register(RegisterRequest request) {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
@@ -111,10 +119,10 @@ public class AuthService {
 
         String token = Jwts.builder()
                 .setSubject(user.getEmail())
-                .claim("role", "USER")
+                .claim("role", "USER") // TODO: Gérer les rôles dynamiquement si nécessaire
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 86400000)) // 24h
-                .signWith(JWT_SECRET, SignatureAlgorithm.HS256)
+                .setExpiration(new Date(System.currentTimeMillis() + 86400000)) // 24 heures de validité
+                .signWith(this.jwtSecretKey, SignatureAlgorithm.HS256) // Utilisation de la clé initialisée
                 .compact();
 
         System.out.println("✅ Connexion réussie - Token généré");

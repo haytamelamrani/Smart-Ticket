@@ -1,0 +1,100 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-create-users-table
+      author: SmartTicket (Haytam EL AMRANI) # Vous pouvez mettre votre nom/pseudo ici
+      comment: "Création de la table des utilisateurs (users)"
+      changes:
+        - createTable:
+            tableName: users
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: first_name # Convention snake_case pour les noms de colonnes SQL
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: true # Ou false si le prénom est toujours requis à la création
+              - column:
+                  name: last_name # Convention snake_case
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: true # Ou false si le nom est toujours requis
+              - column:
+                  name: email
+                  type: VARCHAR(255)
+                  constraints:
+                    unique: true
+                    nullable: false
+              - column:
+                  name: password
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: company
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: otp_code # Convention snake_case
+                  type: VARCHAR(10) # Ajuster la taille si nécessaire
+                  constraints:
+                    nullable: true
+              - column:
+                  name: otp_generated_at # Convention snake_case
+                  type: TIMESTAMP WITHOUT TIME ZONE # Correspond à LocalDateTime
+                  constraints:
+                    nullable: true
+              - column:
+                  name: is_verified # Convention snake_case
+                  type: BOOLEAN
+                  defaultValueBoolean: false # Valeur par défaut
+                  constraints:
+                    nullable: false # Un utilisateur est soit vérifié, soit non vérifié.
+        - rollback:
+            - dropTable:
+                tableName: users
+
+  - changeSet:
+      id: 001-add-unique-constraint-email-users
+      author: SmartTicket (Haytam EL AMRANI)
+      comment: "Ajout d'une contrainte d'unicité explicite sur l'email si non déjà couverte par @Unique dans JPA pour Liquibase"
+      # Cette contrainte est déjà implicitement définie dans la section createTable ci-dessus
+      # avec "unique: true" pour la colonne email.
+      # Cependant, si on voulait l'ajouter séparément ou s'assurer qu'elle a un nom spécifique:
+      # changes:
+      #   - addUniqueConstraint:
+      #       tableName: users
+      #       columnNames: email
+      #       constraintName: uc_users_email # Nom optionnel pour la contrainte
+      # rollback:
+      #   - dropUniqueConstraint:
+      #       tableName: users
+      #       constraintName: uc_users_email
+      # Pour l'instant, la définition dans createTable est suffisante.
+      # Ce changeset est donc commenté/vide pour éviter la redondance.
+      changes: [] # Pas de changement ici car déjà géré.
+      rollback: []
+
+  # Vous pouvez ajouter d'autres changesets ici pour cette table si nécessaire,
+  # par exemple, pour ajouter des index.
+  # - changeSet:
+  #     id: 001-create-index-users-email
+  #     author: SmartTicket (Haytam EL AMRANI)
+  #     comment: "Création d'un index sur la colonne email pour améliorer les performances de recherche"
+  #     changes:
+  #       - createIndex:
+  #           tableName: users
+  #           indexName: idx_users_email
+  #           columns:
+  //             - column:
+  //                 name: email
+  #     rollback:
+  #       - dropIndex:
+  #           tableName: users
+  #           indexName: idx_users_email
