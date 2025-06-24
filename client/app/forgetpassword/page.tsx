@@ -19,9 +19,21 @@ export default function ForgotPasswordPage() {
     setIsLoading(true)
     
     try {
-      // Simuler l'envoi de l'email
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      setSuccess(true)
+      const response = await fetch("http://localhost:8080/api/auth/forgot-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ email })
+      })
+      
+      const data = await response.text()
+      
+      if (response.ok) {
+        setSuccess(true)
+      } else {
+        alert("Erreur : " + data)
+      }      
     } catch (err) {
       // Gérer les erreurs ici
     } finally {

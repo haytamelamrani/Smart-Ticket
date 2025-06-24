@@ -4,6 +4,7 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { Navbar } from "@/components/navbar"
 import { ThemeProvider } from "@/components/theme-provider"
+import { Toaster } from "sonner" // ✅ AJOUT
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -24,6 +25,7 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <Navbar />
           <main>{children}</main>
+          <Toaster richColors position="top-right" /> {/* ✅ AJOUT ICI */}
         </ThemeProvider>
       </body>
     </html>
