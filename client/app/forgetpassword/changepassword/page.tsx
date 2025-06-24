@@ -1,7 +1,7 @@
 "use client"
 
-import type React from "react"
-import { useState } from "react"
+import React, { useEffect, useState } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,42 +10,83 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Ticket, Eye, EyeOff, ArrowLeft } from "lucide-react"
 
 export default function ResetPasswordPage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const token = searchParams.get("token")
+
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
 
+  useEffect(() => {
+    console.log("🔑 Token reçu depuis l'URL :", token)
+  }, [token])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setSuccess("")
     setIsLoading(true)
-    
+
     const formData = new FormData(e.target as HTMLFormElement)
     const newPassword = formData.get("newPassword") as string
     const confirmPassword = formData.get("confirmPassword") as string
 
-    // Validation
-    if (newPassword !== confirmPassword) {
-      setError("Les mots de passe ne correspondent pas")
-      setIsLoading(false)
-      return
-    }
-    
-    if (newPassword.length < 8) {
-      setError("Le mot de passe doit contenir au moins 8 caractères")
+    console.log("🔐 Nouveau mot de passe entré :", newPassword)
+    console.log("🔐 Confirmation :", confirmPassword)
+
+    if (!token) {
+      console.error("❌ Aucun token trouvé dans l'URL.")
+      setError("❌ Lien invalide ou expiré")
       setIsLoading(false)
       return
     }
 
-    // Simulate API call
+    if (newPassword !== confirmPassword) {
+      console.warn("⚠️ Les mots de passe ne correspondent pas.")
+      setError("❌ Les mots de passe ne correspondent pas")
+      setIsLoading(false)
+      return
+    }
+
+    if (newPassword.length < 8) {
+      console.warn("⚠️ Le mot de passe est trop court.")
+      setError("❌ Le mot de passe doit contenir au moins 8 caractères")
+      setIsLoading(false)
+      return
+    }
+
     try {
-      // Ici vous feriez normalement un appel à votre API
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      setSuccess("Votre mot de passe a été réinitialisé avec succès !")
-    } catch (err) {
-      setError("Une erreur est survenue lors de la réinitialisation")
+      console.log("📡 Envoi de la requête à l'API reset-password...")
+      const response = await fetch("http://localhost:8080/api/auth/reset-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          token,
+          newPassword
+        })
+      })
+
+      const resultText = await response.text()
+
+      console.log("📦 Status de la réponse :", response.status)
+      console.log("📦 Contenu de la réponse :", resultText)
+
+      if (response.ok) {
+        console.log("✅ Mot de passe réinitialisé avec succès !")
+        setSuccess("✅ Mot de passe réinitialisé avec succès !")
+        setTimeout(() => router.push("/signin"), 3000)
+      } else {
+        console.error("❌ Échec du backend :", resultText)
+        setError(resultText || "❌ Une erreur est survenue")
+      }
+    } catch (err: any) {
+      console.error("❌ Erreur de connexion :", err)
+      setError("❌ Erreur de connexion au serveur")
     } finally {
       setIsLoading(false)
     }
@@ -76,12 +117,12 @@ export default function ResetPasswordPage() {
           <CardHeader>
             <CardTitle>Créer un nouveau mot de passe</CardTitle>
             <CardDescription>
-              Votre nouveau mot de passe doit être différent des précédents et contenir au moins 8 caractères.
+              Votre nouveau mot de passe doit contenir au moins 8 caractères.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* New Password */}
+              {/* Nouveau mot de passe */}
               <div>
                 <Label htmlFor="newPassword">Nouveau mot de passe</Label>
                 <div className="relative mt-1">
@@ -106,7 +147,7 @@ export default function ResetPasswordPage() {
                 </div>
               </div>
 
-              {/* Confirm Password */}
+              {/* Confirmation */}
               <div>
                 <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
                 <div className="relative mt-1">
@@ -115,7 +156,7 @@ export default function ResetPasswordPage() {
                     name="confirmPassword"
                     type={showConfirmPassword ? "text" : "password"}
                     required
-                    placeholder="Confirmez votre nouveau mot de passe"
+                    placeholder="Confirmez votre mot de passe"
                   />
                   <button
                     type="button"
@@ -131,7 +172,7 @@ export default function ResetPasswordPage() {
                 </div>
               </div>
 
-              {/* Status messages */}
+              {/* Messages */}
               {error && <p className="text-red-500 text-sm">{error}</p>}
               {success && <p className="text-green-500 text-sm">{success}</p>}
 

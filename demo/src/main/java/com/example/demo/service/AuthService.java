@@ -1,7 +1,9 @@
 package com.example.demo.service;
 
 import com.example.demo.dto.RegisterRequest;
+import com.example.demo.entity.PasswordResetToken;
 import com.example.demo.entity.User;
+import com.example.demo.repository.PasswordResetTokenRepository;
 import com.example.demo.repository.UserRepository;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -10,7 +12,7 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
+import org.springframework.transaction.annotation.Transactional;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
@@ -21,7 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 @RequiredArgsConstructor
 public class AuthService {
-
+    private final PasswordResetTokenRepository resetTokenRepository;
     private final JavaMailSender mailSender;
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
@@ -122,30 +124,68 @@ public class AuthService {
     }
 
     public String requestPasswordReset(String email) {
-        Optional<User> userOpt = userRepository.findByEmail(email);
-        if (userOpt.isEmpty()) return "❌ Email introuvable.";
+    Optional<User> userOpt = userRepository.findByEmail(email);
+    if (userOpt.isEmpty()) return "❌ Email introuvable.";
 
-        String resetToken = UUID.randomUUID().toString();
-        String resetLink = "http://localhost:3000/reset-password?token=" + resetToken;
+    String resetToken = UUID.randomUUID().toString();
+    String resetLink = "http://localhost:3000/forgetpassword/changepassword?token=" + resetToken;
 
-        if (sendEmail(email, "Réinitialisation de mot de passe",
-                "Cliquez ici pour réinitialiser votre mot de passe :\n" + resetLink)) {
-            return "📧 Lien de réinitialisation envoyé.";
-        } else {
-            return "⚠️ Échec de l'envoi de l'email.";
+
+    resetTokenRepository.save(
+        PasswordResetToken.builder()
+            .email(email)
+            .token(resetToken)
+            .expiration(LocalDateTime.now().plusMinutes(30))
+            .build()
+    );
+
+    if (sendEmail(email, "Réinitialisation de mot de passe",
+            "Cliquez ici pour réinitialiser votre mot de passe :\n" + resetLink)) {
+        return "📧 Lien de réinitialisation envoyé.";
+    } else {
+        return "⚠️ Échec de l'envoi de l'email.";
+    }
+    }
+
+    @Transactional
+    public String resetPasswordByToken(String token, String newPassword) {
+        System.out.println("🔑 Vérification du token reçu : " + token);
+    
+        Optional<PasswordResetToken> tokenOpt = resetTokenRepository.findByToken(token);
+        if (tokenOpt.isEmpty()) {
+            System.out.println("❌ Token introuvable");
+            return "❌ Token invalide.";
         }
-    }
-
-    public String resetPassword(String email, String newPassword) {
-        Optional<User> userOpt = userRepository.findByEmail(email);
-        if (userOpt.isEmpty()) return "❌ Utilisateur introuvable.";
-
+    
+        PasswordResetToken resetToken = tokenOpt.get();
+        System.out.println("📧 Email lié au token : " + resetToken.getEmail());
+    
+        if (resetToken.getExpiration().isBefore(LocalDateTime.now())) {
+            System.out.println("⏰ Token expiré");
+            return "⏰ Token expiré.";
+        }
+    
+        Optional<User> userOpt = userRepository.findByEmail(resetToken.getEmail());
+        if (userOpt.isEmpty()) {
+            System.out.println("❌ Utilisateur introuvable avec cet email");
+            return "❌ Utilisateur introuvable.";
+        }
+    
         User user = userOpt.get();
-        user.setPassword(passwordEncoder.encode(newPassword));
+        String hashed = passwordEncoder.encode(newPassword);
+        System.out.println("🔐 Nouveau mot de passe hashé : " + hashed);
+    
+        user.setPassword(hashed);
         userRepository.save(user);
-
-        return "✅ Mot de passe mis à jour.";
+        System.out.println("💾 Mot de passe mis à jour avec succès");
+    
+        resetTokenRepository.delete(resetToken);
+        System.out.println("🧹 Token supprimé de la base");
+    
+        return "✅ Mot de passe réinitialisé avec succès.";
     }
+    
+    
 
     private boolean sendEmail(String to, String subject, String text) {
         try {

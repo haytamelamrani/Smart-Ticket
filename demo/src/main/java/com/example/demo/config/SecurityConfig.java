@@ -4,7 +4,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -29,13 +28,14 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource())) // ✅ nouvelle syntaxe
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // JWT = stateless
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll() // login, register, etc.
+                        .requestMatchers("/api/auth/**","/error").permitAll() // login, register, etc.
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(e -> e
-                        .authenticationEntryPoint((req, res, ex) ->
-                                res.sendError(HttpServletResponse.SC_UNAUTHORIZED, "🔒 Non autorisé")
-                        )
+                        .authenticationEntryPoint((req, res, ex) ->{ 
+                                System.out.println("🔒 Accès non autorisé à " + req.getRequestURI());
+                                res.sendError(HttpServletResponse.SC_UNAUTHORIZED, "🔒 Non autorisé");
+                        })
                 )
                 .build();
     }
@@ -57,4 +57,5 @@ public class SecurityConfig {
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
+    
 }

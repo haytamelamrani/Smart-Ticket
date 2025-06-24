@@ -48,7 +48,18 @@ public class AuthController {
     }
 
     @PostMapping("/reset-password")
-    public ResponseEntity<String> resetPassword(@RequestBody ResetPasswordRequest request) {
-        return ResponseEntity.ok(authService.resetPassword(request.getEmail(), request.getNewPassword()));
+        public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) {
+        try {
+            System.out.println("🔧 Requête reçue pour reset-password avec token: " + request.getToken());
+            String result = authService.resetPasswordByToken(request.getToken(), request.getNewPassword());
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            System.err.println("❌ Exception lors du reset-password : " + e.getMessage());
+            e.printStackTrace(); // pour avoir le stack trace complet
+            return ResponseEntity.status(500).body("❌ Erreur interne lors de la réinitialisation du mot de passe");
+        }
     }
+
+
+
 }
